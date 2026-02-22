@@ -1,0 +1,93 @@
+// ============================================================
+// FB_ElectricalMonitor
+// Descripcion: Calcula parametros electricos y verifica limites
+//              basado en Ley de Ohm y Leyes de Kirchhoff
+// Autor: [Tu nombre]
+// Fecha: [Fecha actual]
+// Version: 1.0
+// ============================================================
+
+IF #i_xEnable THEN
+    
+    // =========================================================
+    // SECCION 1: CALCULO DE POTENCIA
+    // Formula: P = V x I  (Ley de Ohm derivada)
+    // =========================================================
+    #o_rPower_W := #i_rVoltage_V * #i_rCurrent_A;
+    
+    
+    // =========================================================
+    // SECCION 2: CALCULO DE RESISTENCIA
+    // Formula: R = V / I  (Ley de Ohm)
+    // Proteccion contra division por cero
+    // =========================================================
+    IF #i_rCurrent_A > 0.001 THEN
+        #o_rResistance_Ohm := #i_rVoltage_V / #i_rCurrent_A;
+        #o_xError := FALSE;
+    ELSE
+        #o_rResistance_Ohm := 0.0;
+        #o_xError := TRUE;
+    END_IF;
+    
+    
+    // =========================================================
+    // SECCION 3: CALCULO DE CAIDA DE TENSION EN CABLE
+    // Formula: Vdrop = I x (2 x rho x L / S)
+    // Factor 2 = ida + vuelta del cable
+    // Ley de Kirchhoff de tensiones: V_fuente = V_cable + V_carga
+    // =========================================================
+    IF #i_rCableSection_mm2 > 0.0 THEN
+        
+        // Calcular caida de tension
+        #o_rVoltageDrop_V := #i_rCurrent_A *
+        (2.0 * #c_rCopperResistivity *
+        #i_rCableLength_m /
+        #i_rCableSection_mm2);
+        
+        // Tension que llega a la carga
+        #o_rVoltageAtLoad_V := #i_rVoltage_V - #o_rVoltageDrop_V;
+        
+        // Porcentaje de caida
+        IF #i_rVoltage_V > 0.0 THEN
+            #o_rVoltageDrop_Percent := (#o_rVoltageDrop_V /
+            #i_rVoltage_V) * 100.0;
+        ELSE
+            #o_rVoltageDrop_Percent := 0.0;
+        END_IF;
+        
+    ELSE
+        // Sin datos de cable, no hay caida
+        #o_rVoltageDrop_V := 0.0;
+        #o_rVoltageAtLoad_V := #i_rVoltage_V;
+        #o_rVoltageDrop_Percent := 0.0;
+    END_IF;
+    
+    
+    // =========================================================
+    // SECCION 4: EVALUACION DE ALARMAS
+    // =========================================================
+    
+    // Alarma: potencia supera el maximo
+    #o_xPowerWarning := (#o_rPower_W > #i_rMaxPower_W);
+    
+    // Alarma: corriente supera el maximo
+    #o_xCurrentWarning := (#i_rCurrent_A > #i_rMaxCurrent_A);
+    
+    // Alarma: caida de tension supera 5% (norma industrial)
+    #o_xVoltageDropWarning := (#o_rVoltageDrop_Percent > 5.0);
+    
+    
+    // =========================================================    
+    // SI EL BLOQUE NO ESTA HABILITADO: TODO A CERO
+    // =========================================================
+ELSE
+    #o_rPower_W := 0.0;
+    #o_rResistance_Ohm := 0.0;
+    #o_rVoltageDrop_V := 0.0;
+    #o_rVoltageAtLoad_V := 0.0;
+    #o_rVoltageDrop_Percent := 0.0;
+    #o_xPowerWarning := FALSE;
+    #o_xCurrentWarning := FALSE;
+    #o_xVoltageDropWarning := FALSE;
+    #o_xError := FALSE;
+END_IF;
