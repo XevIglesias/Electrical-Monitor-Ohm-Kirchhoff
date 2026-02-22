@@ -90,7 +90,7 @@ installations. Based on Ohm's Law and Kirchhoff's Voltage Law.
 - Comply with voltage drop standards (max 5% for 24VDC)
 
 ## Author
-[Tu nombre] - PLC Programming Portfolio
+Xavier Iglesias Borland - PLC Programming Portfolio
 
 ## License
 MIT
